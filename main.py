@@ -19,6 +19,9 @@ async def example(msg: Message, bot: Bot, **kwargs):
     ...
 
 
+maytry.register_command(example)
+
+
 # Run the bot at the bottom in the file
 def main():
     maytry.run()

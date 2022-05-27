@@ -94,7 +94,7 @@ class Maytry(Febtry):
     def get_bot(self) -> Bot:
         return self._bot
 
-    def add(self, command: Command):
+    def register_command(self, command: Command):
         self._bot.command.add(command)
 
     def is_op(self, guild: Guild, user: User) -> bool:
