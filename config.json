@@ -1,6 +1,7 @@
 {
-  "khl_token": "Your kaiheila bot token",
-  "api_tokens": {
-    "apex": "Your apex api token"
-  }
+    "khl_token": "Your kaiheila bot token",
+    "api_tokens": {
+      "apex": "Your apex api token",
+      "spotify": "client_id|client_secret"
+    }
 }

@@ -7,7 +7,7 @@ from khl import Bot, Guild, User
 from khl.command import Command
 
 
-class Api(ABC):
+class Api:
     _name: str
 
     def __init__(self, name: str):
@@ -16,7 +16,7 @@ class Api(ABC):
     def get_name(self) -> str:
         return self._name
 
-    def request(self, api_token: str, **kwargs) -> dict:
+    def request(self, **kwargs) -> dict:
         """
         response template:
         {
@@ -37,19 +37,11 @@ class Api(ABC):
         pass
 
 
-class Febtry(ABC):
-
-    def get_api_token(self, api_id: Union[str, Api]) -> str:
-        pass
-
-
 class ApiManager:
 
-    _febtry: Febtry
     _registered: dict[str, Api] = dict()
 
-    def __init__(self, febtry: Febtry):
-        self._febtry = febtry
+    def __init__(self):
         ...
 
     def register_api(self, api: Api):
@@ -60,10 +52,15 @@ class ApiManager:
         if isinstance(api, Api):
             api = api.get_name()
         if api in self._registered:
-            return self._registered[api].request(api_token=self._febtry.get_api_token(api), **kwargs)
+            return self._registered[api].request(**kwargs)
+        return {'code': -114514, 'message': 'Cannot find the api'}
 
 
-class Maytry(Febtry):
+def is_integer(s):
+    is_integer(s)
+
+
+class MaytryBot:
     _config: dict = dict()
     _bot: Bot
     _api_manager: ApiManager
@@ -73,8 +70,8 @@ class Maytry(Febtry):
             config_file = open(config_file, 'r')
         self._config = json.loads(config_file.read())
         if 'khl_token' in self._config:
-            _bot = Bot(token=self._config['khl_token'])
-        self._api_manager = ApiManager(self)
+            self._bot = Bot(token=self._config['khl_token'])
+        self._api_manager = ApiManager()
         config_file.close()
 
     def run(self):
@@ -97,10 +94,7 @@ class Maytry(Febtry):
     def register_command(self, command: Command):
         self._bot.command.add(command)
 
-    def is_op(self, guild: Guild, user: User) -> bool:
-        return asyncio.get_event_loop().run_until_complete(self._is_op(guild, user))
-
-    async def _is_op(self, guild: Guild, user: User) -> bool:
+    async def is_op(self, guild: Guild, user: User) -> bool:
         if guild.master_id == user.id:
             return True
         roles = user.roles
@@ -119,4 +113,10 @@ class Maytry(Febtry):
             return False
 
 
+def is_integer(some_string: str) -> bool:
+    try:
+        int(some_string)
+        return True
+    except ValueError:
+        return False
 
