@@ -28,6 +28,53 @@ class VerificationManager:
             for key in self._cache.get("servers").keys():
                 self._code_cache[key] = dict()
 
+    def is_channel_visible_before_verify(self, guild: Guild, channel: Channel):
+        if self.is_initialized(guild):
+            return channel.id in self._cache.get(f'servers*{guild.id}*before_visible')
+        return False
+
+    async def modify_visible_before_verify(self, guild: Guild, channel: Channel, visible: bool) -> bool:
+        everyone_role = ...
+        for role in await guild.fetch_roles():
+            if role.id == 0:
+                everyone_role = role
+        if everyone_role is None:
+            return False
+        if visible:
+            if not self.is_channel_visible_before_verify(guild, channel):
+                self._cache.get(f'servers*{guild.id}*before_visible').append(channel.id)
+                self._cache.save()
+                await channel.update_permission(everyone_role, allow=2048)
+                return True
+        else:
+            if self.is_channel_visible_before_verify(guild, channel):
+                self._cache.get(f'servers*{guild.id}*before_visible').remove(channel.id)
+                self._cache.save()
+                await channel.update_permission(everyone_role, deny=2048)
+                return True
+        return False
+
+    def is_channel_invisible_after_verify(self, guild: Guild, channel: Channel):
+        if self.is_initialized(guild):
+            return channel.id in self._cache.get(f'servers*{guild.id}*after_invisible')
+        return False
+
+    async def modify_invisible_after_verify(self, guild: Guild, channel: Channel, visible: bool) -> bool:
+        member_role = await self.get_member_role(guild)
+        if visible:
+            if self.is_channel_invisible_after_verify(guild, channel):
+                await channel.update_permission(member_role, allow=2048)
+                self._cache.get(f'servers*{guild.id}*after_invisible').remove(channel.id)
+                self._cache.save()
+                return True
+        else:
+            if not self.is_channel_invisible_after_verify(guild, channel):
+                self._cache.get(f'servers*{guild.id}*after_invisible').append(channel.id)
+                self._cache.save()
+                await channel.update_permission(member_role, deny=2048)
+                return True
+        return False
+
     async def add_verified_user(self, guild: Guild, user: User, uid: Union[str, int]):
         if not self._verified_users.contains(user.id):
             self._verified_users.set(f'{user.id}', uid)
@@ -72,7 +119,6 @@ class VerificationManager:
             if role.id == 0:
                 everyone_role = role
         if everyone_role is None:
-            print('Cannot find "@everyone" role')
             return False
         member_role = await guild.create_role('成员')
         everyone_original_permissions = everyone_role.permissions
@@ -130,7 +176,6 @@ class VerificationManager:
             if role.id == 0:
                 everyone_role = role
         if everyone_role is None:
-            print('Cannot find "@everyone" role')
             return False
         await guild.delete_role(self._cache.get(f'servers*{guild_id}*member_role'))
         for channel in await guild.fetch_channel_list():

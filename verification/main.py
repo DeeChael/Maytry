@@ -56,6 +56,66 @@ async def verify(msg: Message, bot: Bot, operation: str = None, param2nd: str = 
                 if (await verification_manager.get_verifying_channel(guild)).id == channel.id:
                     verify_code = verification_manager.generate_code(guild, msg.author)
                     await msg.reply(f'您的验证代码为：{verify_code}，有效期为10分钟', is_temp=True)
+        elif operation == 'add':
+            if verification_manager.is_initialized(guild):
+                if maytry_bot.is_op(guild, msg.author):
+                    if not (await verification_manager.get_verifying_channel(guild)).id == channel.id:
+                        if not verification_manager.is_channel_visible_before_verify(guild, channel):
+                            if await verification_manager.modify_visible_before_verify(guild, channel, True):
+                                await msg.reply('该频道被设置为一个非验证用户可见频道！', is_temp=True)
+                            else:
+                                await msg.reply('设置失败', is_temp=True)
+                        else:
+                            await msg.reply('该频道已是一个未验证用户可见频道', is_temp=True)
+                    else:
+                        await msg.reply(f'你不能在验证频道中进行该操作', is_temp=True)
+                else:
+                    await msg.reply('权限不足', is_temp=True)
+        elif operation == 'remove':
+            if verification_manager.is_initialized(guild):
+                if maytry_bot.is_op(guild, msg.author):
+                    if (await verification_manager.get_verifying_channel(guild)).id == channel.id:
+                        if verification_manager.is_channel_visible_before_verify(guild, channel):
+                            if await verification_manager.modify_visible_before_verify(guild, channel, False):
+                                await msg.reply('该频道成功被设置为一个未验证用户不可见频道！', is_temp=True)
+                            else:
+                                await msg.reply('设置失败', is_temp=True)
+                        else:
+                            await msg.reply('该频道已是一个未验证用户不可见频道', is_temp=True)
+                    else:
+                        await msg.reply(f'你不能在验证频道中进行该操作', is_temp=True)
+                else:
+                    await msg.reply('权限不足', is_temp=True)
+        elif operation == 'visible':
+            if verification_manager.is_initialized(guild):
+                if maytry_bot.is_op(guild, msg.author):
+                    if not (await verification_manager.get_verifying_channel(guild)).id == channel.id:
+                        if not verification_manager.is_channel_invisible_after_verify(guild, channel):
+                            if await verification_manager.modify_invisible_after_verify(guild, channel, True):
+                                await msg.reply('该频道成功被设置为一个验证用户可见频道！', is_temp=True)
+                            else:
+                                await msg.reply('设置失败', is_temp=True)
+                        else:
+                            await msg.reply('该频道已是一个验证用户可见频道', is_temp=True)
+                    else:
+                        await msg.reply(f'你不能在验证频道中进行该操作', is_temp=True)
+                else:
+                    await msg.reply('权限不足', is_temp=True)
+        elif operation == 'invisible':
+            if verification_manager.is_initialized(guild):
+                if maytry_bot.is_op(guild, msg.author):
+                    if not (await verification_manager.get_verifying_channel(guild)).id == channel.id:
+                        if verification_manager.is_channel_invisible_after_verify(guild, channel):
+                            if await verification_manager.modify_invisible_after_verify(guild, channel, False):
+                                await msg.reply('该频道成功被设置为一个验证用户不可见频道！', is_temp=True)
+                            else:
+                                await msg.reply('设置失败', is_temp=True)
+                        else:
+                            await msg.reply('该频道已是一个验证用户不可见频道', is_temp=True)
+                    else:
+                        await msg.reply(f'你不能在验证频道中进行该操作', is_temp=True)
+                else:
+                    await msg.reply('权限不足', is_temp=True)
         elif operation == 'verify':
             if verification_manager.is_initialized(guild):
                 if (await verification_manager.get_verifying_channel(guild)).id == channel.id:
