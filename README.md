@@ -10,5 +10,5 @@ There are many useful tools, explore it by yourself!
 Not explain
 
 ### Spotify
-If you know what is spotify, and you have used the spotify api, this will be easy to understand\
+If you have used the spotify api, this will be easy to understand\
 ![Spotify Dashboard](./spotify.png)
