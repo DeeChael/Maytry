@@ -2,10 +2,25 @@ import json
 import os
 from abc import ABC
 from copy import deepcopy
+from enum import Enum
 from typing import Union, List
+
+import yaml
+
+
+class ConfigurationType(Enum):
+    MEMORY = 'memory'
+    JSON = 'json'
+    YAML = 'yaml'
+    SIMPLE = 'simple'
 
 
 class Configuration(ABC):
+    _type: ConfigurationType
+
+    def __init__(self, type: ConfigurationType):
+        self._type = type
+
     def get(self, key: str):
         pass
 
@@ -36,34 +51,37 @@ class Configuration(ABC):
     def as_dict(self) -> dict:
         pass
 
+    def get_type(self) -> ConfigurationType:
+        return self._type
+
     def __str__(self):
         return self.as_dict()
 
 
-class JsonConfiguration(Configuration):
-    """
-    Don't use '*' in key, because this is a character to split!
-    """
-
-    _file: str
+class MemoryConfiguration(Configuration, ABC):
+    _separator: str
     _content: dict
 
-    def __init__(self, file: str):
-        self._file = file
-        self.load()
+    def __init__(self, content: Union[None, dict], separator: str = '*',
+                 type: ConfigurationType = ConfigurationType.MEMORY):
+        super().__init__(type)
+        if content is None:
+            content = dict()
+        self._separator = separator
+        self._content = content
 
     def get(self, key: str):
         return self.get_or_default(key, None)
 
     def get_or_default(self, key: str, default):
-        key = key.lstrip('*').lstrip('*')
+        key = key.lstrip(self._separator).lstrip(self._separator)
         if len(key) <= 0:
             return default
-        if '*' in key:
-            split_str = key.split('*', count(key, '*') - 1)
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
             cache_split_str_last_object = split_str[len(split_str) - 1]
-            split_str[len(split_str) - 1] = cache_split_str_last_object.split("*")[0]
-            last_key = key.rsplit('*', 1)[1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
             cache_dict = self._content
             for sub in split_str:
                 if sub in cache_dict:
@@ -83,15 +101,18 @@ class JsonConfiguration(Configuration):
             else:
                 return default
 
-    def set(self, key: str, value: Union[str, int, bool, float, List[Union[str, int, bool, float]], Configuration]) -> bool:
-        key = key.lstrip('*').lstrip('*')
+    def set(self, key: str,
+            value: Union[None, str, int, bool, float, List[Union[str, int, bool, float]], Configuration]) -> bool:
+        if value is None:
+            return self.remove(key)
+        key = key.lstrip(self._separator).lstrip(self._separator)
         if len(key) <= 0:
             return False
-        if '*' in key:
-            split_str = key.split('*', count(key, '*') - 1)
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
             cache_split_str_last_object = split_str[len(split_str) - 1]
-            split_str[len(split_str) - 1] = cache_split_str_last_object.split("*")[0]
-            last_key = key.rsplit('*', 1)[1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
             cache_dict = self._content
             for sub in split_str:
                 if sub in cache_dict:
@@ -109,14 +130,14 @@ class JsonConfiguration(Configuration):
             return True
 
     def remove(self, key: str) -> bool:
-        key = key.lstrip('*').lstrip('*')
+        key = key.lstrip(self._separator).lstrip(self._separator)
         if len(key) <= 0:
             return False
-        if '*' in key:
-            split_str = key.split('*', count(key, '*') - 1)
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
             cache_split_str_last_object = split_str[len(split_str) - 1]
-            split_str[len(split_str) - 1] = cache_split_str_last_object.split("*")[0]
-            last_key = key.rsplit('*', 1)[1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
             cache_dict = self._content
             for sub in split_str:
                 if sub in cache_dict:
@@ -138,14 +159,14 @@ class JsonConfiguration(Configuration):
                 return False
 
     def contains(self, key: str) -> bool:
-        key = key.lstrip('*').lstrip('*')
+        key = key.lstrip(self._separator).lstrip(self._separator)
         if len(key) <= 0:
             return False
-        if '*' in key:
-            split_str = key.split('*', count(key, '*') - 1)
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
             cache_split_str_last_object = split_str[len(split_str) - 1]
-            split_str[len(split_str) - 1] = cache_split_str_last_object.split("*")[0]
-            last_key = key.rsplit('*', 1)[1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
             cache_dict = self._content
             for sub in split_str:
                 if sub in cache_dict:
@@ -165,6 +186,28 @@ class JsonConfiguration(Configuration):
                 return False
 
     def save(self):
+        pass
+
+    def load(self):
+        pass
+
+    def as_dict(self) -> dict:
+        return deepcopy(self._content)
+
+
+class JsonConfiguration(MemoryConfiguration):
+    """
+    Don't use '*' in key, because this is a character to split!
+    """
+
+    _file: str
+
+    def __init__(self, file: str, separator: str = '*'):
+        super().__init__(None, separator=separator, type=ConfigurationType.JSON)
+        self._file = file
+        self.load()
+
+    def save(self):
         with open(self._file, 'w') as configuration_file:
             configuration_file.write(json.dumps(self._content))
 
@@ -178,8 +221,35 @@ class JsonConfiguration(Configuration):
         return deepcopy(self._content)
 
 
-class SimpleConfiguration(Configuration):
+class YamlConfiguration(MemoryConfiguration):
+    """
+    Don't use '.' in key, because this is a character to split!
 
+    How to use this? Check the bukkit api in Java! https://bukkit.fandom.com/wiki/Configuration_API_Reference
+    """
+
+    _file: str
+
+    def __init__(self, file: str, separator: str = '.'):
+        super().__init__(None, separator=separator, type=ConfigurationType.YAML)
+        self._file = file
+        self.load()
+
+    def save(self):
+        with open(self._file, 'w') as configuration_file:
+            yaml.dump(self._content, configuration_file)
+
+    def load(self):
+        self._content = dict()
+        if os.path.exists(self._file) and os.path.isfile(self._file):
+            with open(self._file, 'r') as configuration_file:
+                self._content = yaml.load(configuration_file)
+
+    def as_dict(self) -> dict:
+        return deepcopy(self._content)
+
+
+class SimpleConfiguration(Configuration):
     """
     Key cannot contains ' '
     But value can
@@ -189,6 +259,7 @@ class SimpleConfiguration(Configuration):
     _content: dict
 
     def __init__(self, file: str):
+        super().__init__(ConfigurationType.SIMPLE)
         self._file = file
         self.load()
 
@@ -201,7 +272,10 @@ class SimpleConfiguration(Configuration):
             return self._content[key]
         return default
 
-    def set(self, key: str, value: Union[str, int, bool, float, List[Union[str, int, bool, float]], Configuration]) -> bool:
+    def set(self, key: str,
+            value: Union[str, int, bool, float, List[Union[str, int, bool, float]], Configuration]) -> bool:
+        if value is None:
+            return self.remove(key)
         self._content[key.replace(' ', '')] = value
         return True
 
@@ -237,3 +311,7 @@ class SimpleConfiguration(Configuration):
 
 def count(to_be_count: str, char: str) -> int:
     return int((len(to_be_count) - len(to_be_count.replace(char, ''))) / len(char))
+
+
+def convert(config: Configuration, type: ConfigurationType) -> Configuration:
+    ...

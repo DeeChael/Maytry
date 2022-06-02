@@ -7,7 +7,7 @@ from bilibili_api import user
 from khl import User, Guild, Channel, PublicChannel, MessageTypes
 from khl.card import CardMessage, Card, Module, Element, Types
 
-from configuration import Configuration, SimpleConfiguration, JsonConfiguration
+from configuration import Configuration, SimpleConfiguration, JsonConfiguration, YamlConfiguration
 from maytry import MaytryBot
 
 
@@ -22,7 +22,7 @@ class VerificationManager:
     def __init__(self, maytry: MaytryBot):
         self._maytry = maytry
         self._verified_users = SimpleConfiguration('verified.cache')
-        self._configuration = JsonConfiguration('verification-settings.json')
+        self._configuration = YamlConfiguration('verification-settings.yml')
         self._cache = JsonConfiguration('verification-cache.json')
         if self._cache.contains("servers"):
             for key in self._cache.get("servers").keys():
