@@ -225,31 +225,31 @@ class VerificationManager:
                                             self._code_cache[guild.id][user.id][
                                                 'code']:
                                         found = True
+                                        break
                         if found:
-                            card_message = CardMessage()
-                            card = Card()
-
-                            section = Module.Section()
-                            section.text = Element.Text(f'用户ID：{user.id}\n'
-                                                        f'用户名：{user.username}\n'
-                                                        f'昵称：{user.nickname}\n'
-                                                        f'哔哩哔哩链接: https://space.bilibili.com/{uid}',
-                                                        type=Types.Text.KMD)
-
-                            actionGroup = Module.ActionGroup()
-                            button = Element.Button('点击跳转', value=f'https://space.bilibili.com/{uid}')
-                            button.click = Types.Click.LINK
-                            actionGroup.append(button)
-
-                            card.append(Module.Divider())
-                            card.append(section)
-                            card.append(actionGroup)
-                            card.append(Module.Divider())
-
-                            card_message.append(card)
-
                             verify_log_channel = await self.get_log_channel(guild)
                             if verify_log_channel is not None:
+                                card_message = CardMessage()
+                                card = Card()
+
+                                section = Module.Section()
+                                section.text = Element.Text(f'用户ID：{user.id}\n'
+                                                            f'用户名：{user.username}\n'
+                                                            f'昵称：{user.nickname}\n'
+                                                            f'哔哩哔哩链接: https://space.bilibili.com/{uid}',
+                                                            type=Types.Text.KMD)
+
+                                actionGroup = Module.ActionGroup()
+                                button = Element.Button('点击跳转', value=f'https://space.bilibili.com/{uid}')
+                                button.click = Types.Click.LINK
+                                actionGroup.append(button)
+
+                                card.append(Module.Divider())
+                                card.append(section)
+                                card.append(actionGroup)
+                                card.append(Module.Divider())
+
+                                card_message.append(card)
                                 await self._maytry.get_bot().send(verify_log_channel, card_message,
                                                                   type=MessageTypes.CARD)
                             print(f'用户 {user.nickname} 通过了验证！')

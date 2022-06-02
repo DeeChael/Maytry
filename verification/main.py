@@ -9,7 +9,7 @@ from maytry import MaytryBot
 # Initialized maytry bot
 from verification import VerificationManager
 
-maytry_bot = MaytryBot('test_config.json')
+maytry_bot = MaytryBot('config.json')
 verification_manager = VerificationManager(maytry_bot)
 
 
@@ -58,7 +58,7 @@ async def verify(msg: Message, bot: Bot, operation: str = None, param2nd: str = 
                     await msg.reply(f'您的验证代码为：{verify_code}，有效期为10分钟', is_temp=True)
         elif operation == 'add':
             if verification_manager.is_initialized(guild):
-                if maytry_bot.is_op(guild, msg.author):
+                if await maytry_bot.is_op(guild, msg.author):
                     if not (await verification_manager.get_verifying_channel(guild)).id == channel.id:
                         if not verification_manager.is_channel_visible_before_verify(guild, channel):
                             if await verification_manager.modify_visible_before_verify(guild, channel, True):
@@ -73,7 +73,7 @@ async def verify(msg: Message, bot: Bot, operation: str = None, param2nd: str = 
                     await msg.reply('权限不足', is_temp=True)
         elif operation == 'remove':
             if verification_manager.is_initialized(guild):
-                if maytry_bot.is_op(guild, msg.author):
+                if await maytry_bot.is_op(guild, msg.author):
                     if (await verification_manager.get_verifying_channel(guild)).id == channel.id:
                         if verification_manager.is_channel_visible_before_verify(guild, channel):
                             if await verification_manager.modify_visible_before_verify(guild, channel, False):
@@ -88,7 +88,7 @@ async def verify(msg: Message, bot: Bot, operation: str = None, param2nd: str = 
                     await msg.reply('权限不足', is_temp=True)
         elif operation == 'visible':
             if verification_manager.is_initialized(guild):
-                if maytry_bot.is_op(guild, msg.author):
+                if await maytry_bot.is_op(guild, msg.author):
                     if not (await verification_manager.get_verifying_channel(guild)).id == channel.id:
                         if not verification_manager.is_channel_invisible_after_verify(guild, channel):
                             if await verification_manager.modify_invisible_after_verify(guild, channel, True):
@@ -103,7 +103,7 @@ async def verify(msg: Message, bot: Bot, operation: str = None, param2nd: str = 
                     await msg.reply('权限不足', is_temp=True)
         elif operation == 'invisible':
             if verification_manager.is_initialized(guild):
-                if maytry_bot.is_op(guild, msg.author):
+                if await maytry_bot.is_op(guild, msg.author):
                     if not (await verification_manager.get_verifying_channel(guild)).id == channel.id:
                         if verification_manager.is_channel_invisible_after_verify(guild, channel):
                             if await verification_manager.modify_invisible_after_verify(guild, channel, False):
@@ -184,14 +184,6 @@ maytry_bot.register_command(message_listener)
 @maytry_bot.get_bot().task.add_interval(seconds=5)
 async def tick():
     verification_manager.tick()
-
-
-# Events
-@maytry_bot.get_bot().on_event(type=EventTypes.JOINED_GUILD)
-async def joined_guild(bot: Bot, event: Event):
-    user = await bot.fetch_user(event.extra['user_id'])
-    await verification_manager.sync_user(await bot.fetch_guild(event.target_id), user)
-
 
 # Run the bot at the bottom in the file
 def main():
