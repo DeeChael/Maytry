@@ -34,7 +34,7 @@ async def verify(msg: Message, bot: Bot, operation: str = None, param2nd: str = 
                                 '---\n'
                                 '.verify help - 获取帮助\n'
                                 '.verify generate - 生成新的验证码\n'
-                                '.verify verify <bilibili uid> - 进行绑定验证'
+                                '.verify verify <bilibili uid> - 进行绑定验证\n'
                                 '.verify add - 使当前频道验证前可见\n'
                                 '.verify remove - 取消当前频道加入验证前可见\n'
                                 '.verify invisible - 将当前频道设置为验证后不可见\n'
