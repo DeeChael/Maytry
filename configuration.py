@@ -15,11 +15,7 @@ class ConfigurationType(Enum):
     SIMPLE = 'simple'
 
 
-class Configuration(ABC):
-    _type: ConfigurationType
-
-    def __init__(self, type: ConfigurationType):
-        self._type = type
+class ConfigurationSection(ABC):
 
     def get(self, key: str):
         pass
@@ -42,20 +38,197 @@ class Configuration(ABC):
     def contains(self, key: str) -> bool:
         pass
 
+    def dict_copy(self) -> dict:
+        pass
+
+
+class MemoryConfigurationSection(ConfigurationSection):
+    _separator: str
+    _content: dict
+
+    def __init__(self, content: Union[None, dict], separator: str = '*'):
+        super().__init__(type)
+        if content is None:
+            content = dict()
+        self._separator = separator
+        self._content = content
+
+    def get(self, key: str):
+        return self.get_or_default(key, None)
+
+    def get_or_default(self, key: str, default):
+        key = key.lstrip(self._separator).lstrip(self._separator)
+        if len(key) <= 0:
+            return default
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
+            cache_split_str_last_object = split_str[len(split_str) - 1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
+            cache_dict = self._content
+            for sub in split_str:
+                if sub in cache_dict:
+                    if not isinstance(cache_dict[sub], dict):
+                        return default
+                    cache_dict = cache_dict[sub]
+                else:
+                    return default
+
+            if last_key in cache_dict:
+                value = cache_dict[last_key]
+                if isinstance(value, dict):
+                    return MemoryConfigurationSection(value, separator=self._separator)
+                else:
+                    return value
+            else:
+                return default
+        else:
+            if key in self._content:
+                return self._content[key]
+            else:
+                return default
+
+    def set_default(self, key: str, value: Union[
+        str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
+        if self.contains(key):
+            return True
+        else:
+            return self.set(key, value)
+
+    def set(self, key: str,
+            value: Union[
+                None, str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
+        if value is None:
+            return self.remove(key)
+        if isinstance(value, ConfigurationSection):
+            value = value.dict_copy()
+        key = key.lstrip(self._separator).lstrip(self._separator)
+        if len(key) <= 0:
+            return False
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
+            cache_split_str_last_object = split_str[len(split_str) - 1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
+            cache_dict = self._content
+            for sub in split_str:
+                if sub in cache_dict:
+                    if not isinstance(cache_dict[sub], dict):
+                        return False
+                    cache_dict = cache_dict[sub]
+                else:
+                    new_dict = dict()
+                    cache_dict[sub] = new_dict
+                    cache_dict = new_dict
+            cache_dict[last_key] = value
+            return True
+        else:
+            self._content[key] = value
+            return True
+
+    def remove(self, key: str) -> bool:
+        key = key.lstrip(self._separator).lstrip(self._separator)
+        if len(key) <= 0:
+            return False
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
+            cache_split_str_last_object = split_str[len(split_str) - 1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
+            cache_dict = self._content
+            for sub in split_str:
+                if sub in cache_dict:
+                    if not isinstance(cache_dict[sub], dict):
+                        return False
+                    cache_dict = cache_dict[sub]
+                else:
+                    return False
+            if last_key in cache_dict:
+                cache_dict.pop(last_key)
+                return True
+            else:
+                return False
+        else:
+            if key in self._content:
+                self._content.pop(key)
+                return True
+            else:
+                return False
+
+    def contains(self, key: str) -> bool:
+        key = key.lstrip(self._separator).lstrip(self._separator)
+        if len(key) <= 0:
+            return False
+        if self._separator in key:
+            split_str = key.split(self._separator, count(key, self._separator) - 1)
+            cache_split_str_last_object = split_str[len(split_str) - 1]
+            split_str[len(split_str) - 1] = cache_split_str_last_object.split(self._separator)[0]
+            last_key = key.rsplit(self._separator, 1)[1]
+            cache_dict = self._content
+            for sub in split_str:
+                if sub in cache_dict:
+                    if not isinstance(cache_dict[sub], dict):
+                        return False
+                    cache_dict = cache_dict[sub]
+                else:
+                    return False
+            if last_key in cache_dict:
+                return True
+            else:
+                return False
+        else:
+            if key in self._content:
+                return True
+            else:
+                return False
+
+    def dict_copy(self) -> dict:
+        pass
+
+
+class Configuration(ABC):
+    _type: ConfigurationType
+
+    def __init__(self, type: ConfigurationType):
+        self._type = type
+
+    def get(self, key: str):
+        pass
+
+    def get_or_default(self, key: str, default):
+        pass
+
+    def set(self, key: str,
+            value: Union[str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
+        pass
+
+    def set_default(self, key: str, value: Union[
+        str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
+        if not self.contains(key):
+            self.set(key, value)
+            return True
+        return False
+
+    def remove(self, key: str) -> bool:
+        pass
+
+    def contains(self, key: str) -> bool:
+        pass
+
     def save(self):
         pass
 
     def load(self):
         pass
 
-    def as_dict(self) -> dict:
+    def dict_copy(self) -> dict:
         pass
 
     def get_type(self) -> ConfigurationType:
         return self._type
 
     def __str__(self):
-        return self.as_dict()
+        return self.dict_copy()
 
 
 class MemoryConfiguration(Configuration, ABC):
@@ -90,9 +263,12 @@ class MemoryConfiguration(Configuration, ABC):
                     cache_dict = cache_dict[sub]
                 else:
                     return default
-
             if last_key in cache_dict:
-                return cache_dict[last_key]
+                value = cache_dict[last_key]
+                if isinstance(value, dict):
+                    return MemoryConfigurationSection(value, separator=self._separator)
+                else:
+                    return value
             else:
                 return default
         else:
@@ -101,10 +277,20 @@ class MemoryConfiguration(Configuration, ABC):
             else:
                 return default
 
+    def set_default(self, key: str, value: Union[
+        str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
+        if self.contains(key):
+            return True
+        else:
+            return self.set(key, value)
+
     def set(self, key: str,
-            value: Union[None, str, int, bool, float, List[Union[str, int, bool, float]], Configuration]) -> bool:
+            value: Union[
+                None, str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
         if value is None:
             return self.remove(key)
+        if isinstance(value, ConfigurationSection):
+            value = value.dict_copy()
         key = key.lstrip(self._separator).lstrip(self._separator)
         if len(key) <= 0:
             return False
@@ -191,13 +377,14 @@ class MemoryConfiguration(Configuration, ABC):
     def load(self):
         pass
 
-    def as_dict(self) -> dict:
+    def dict_copy(self) -> dict:
         return deepcopy(self._content)
 
 
 class JsonConfiguration(MemoryConfiguration):
     """
-    Don't use '*' in key, because this is a character to split!
+    Don't use separator character in key, because this is a character to split!
+    Default separator character: *
     """
 
     _file: str
@@ -217,13 +404,14 @@ class JsonConfiguration(MemoryConfiguration):
             with open(self._file, 'r') as configuration_file:
                 self._content = json.loads(configuration_file.read())
 
-    def as_dict(self) -> dict:
+    def dict_copy(self) -> dict:
         return deepcopy(self._content)
 
 
 class YamlConfiguration(MemoryConfiguration):
     """
-    Don't use '.' in key, because this is a character to split!
+    Don't use the separator character in key, because this is a character to split!
+    Default separator character: .
 
     How to use this? Check the bukkit api in Java! https://bukkit.fandom.com/wiki/Configuration_API_Reference
     """
@@ -245,7 +433,7 @@ class YamlConfiguration(MemoryConfiguration):
             with open(self._file, 'r') as configuration_file:
                 self._content = yaml.load(configuration_file)
 
-    def as_dict(self) -> dict:
+    def dict_copy(self) -> dict:
         return deepcopy(self._content)
 
 
@@ -273,11 +461,18 @@ class SimpleConfiguration(Configuration):
         return default
 
     def set(self, key: str,
-            value: Union[str, int, bool, float, List[Union[str, int, bool, float]], Configuration]) -> bool:
+            value: Union[str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
         if value is None:
             return self.remove(key)
         self._content[key.replace(' ', '')] = value
         return True
+
+    def set_default(self, key: str, value: Union[
+        str, int, bool, float, List[Union[str, int, bool, float]], ConfigurationSection]) -> bool:
+        if self.contains(key):
+            return True
+        else:
+            return self.set(key, value)
 
     def remove(self, key: str) -> bool:
         return self._content.pop(key.replace(' ', ''))
@@ -305,7 +500,7 @@ class SimpleConfiguration(Configuration):
                             temp_dict[split_string[0]] = split_string[1]
                 self._content = temp_dict
 
-    def as_dict(self) -> dict:
+    def dict_copy(self) -> dict:
         return deepcopy(self._content)
 
 
